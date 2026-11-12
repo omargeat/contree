@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compteur Contrée</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            max-width: 750px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        h1 { text-align: center; color: #0d6efd; margin-top: 0; }
+        h2 { font-size: 1.2rem; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 0.3rem; margin-top: 1.5rem; }
+        
+        .input-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; }
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: white;
+        }
+        
+        .btn {
+            background: #0d6efd;
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+            margin-top: 1.5rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary { background: #6c757d; margin-top: 0.5rem; }
+        .btn-warning { background: #fd7e14; color: white; margin-top: 0.5rem; font-size: 0.9rem; padding: 0.5rem; width: 100%; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;}
+
+        .checkbox-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .check-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: 2px solid transparent;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+            font-size: 0.95rem;
+            flex: 1 1 calc(33% - 0.5rem);
+            text-align: center;
+        }
+        .check-btn.selected {
+            background: #0d6efd;
+            color: white;
+            border-color: #0a58ca;
+        }
+
+        .guest-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .guest-row input { flex: 1; padding: 0.5rem; font-size: 1rem; }
+        .btn-small { background: #198754; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #dc3545; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 4px; cursor: pointer; }
+
+        .guest-tag {
+            display: inline-flex;
+            align-items: center;
+            background: #e2e3e5;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            margin: 0.2rem;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+        }
+
+        #game-screen { display: none; width: 100%; max-width: 750px; }
+        .scoreboard {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .team-box { flex: 1; padding: 0.5rem; }
+        .team-name { font-weight: bold; font-size: 1.1rem; color: #0d6efd; margin-bottom: 0.3rem; }
+        .team-score { font-size: 2rem; font-weight: 900; }
+        .team-players { font-size: 0.9rem; color: #555; margin-top: 0.3rem; font-weight: 500; }
+
+        .card-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .auction-layout {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .auction-col {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            transition: all 0.2s;
+        }
+        .auction-col.turn-active {
+            border-color: #198754;
+            background: #f1f8f5;
+            box-shadow: 0 0 10px rgba(25, 135, 84, 0.2);
+        }
+        .auction-col h3 { font-size: 1.1rem; margin-top: 0; color: #495057; text-align: center; display: flex; justify-content: space-between; align-items: center;}
+        
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #6c757d;
+            margin-top: 0.8rem;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ced4da;
+            padding-bottom: 0.2rem;
+        }
+
+        .bids-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.3rem;
+        }
+        .bid-btn {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 0.4rem 0.2rem;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .bid-btn:hover:not(:disabled) { background: #0d6efd; color: white; }
+        .bid-btn.active { background: #0d6efd; color: white; border-color: #0a58ca; }
+        .bid-btn:disabled { background: #e2e3e5; color: #adb5bd; border-color: #e2e3e5; cursor: not-allowed; opacity: 0.4; }
+
+        /* Boutons Contré / Surcontré */
+        .contre-bar {
+            display: none;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .btn-contre {
+            flex: 1;
+            padding: 0.75rem;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 2px solid #dc3545;
+            background: white;
+            color: #dc3545;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-contre.active {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-surcontre {
+            flex: 1;
+            padding: 0.75rem;
+            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: 2px solid #6f42c1;
+            background: white;
+            color: #6f42c1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-surcontre.active {
+            background: #6f42c1;
+            color: white;
+        }
+        .btn-surcontre:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .points-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+        .point-btn {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            padding: 0.5rem 0.8rem;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            flex: 1 1 calc(20% - 0.4rem);
+            text-align: center;
+        }
+        .point-btn:hover { background: #198754; color: white; }
+        .point-btn.selected { background: #198754; color: white; border-color: #146c43; }
+        .point-btn.capot-btn { flex: 1 1 100%; background: #ffc107; color: #000; border-color: #ffca2c; }
+        .point-btn.capot-btn.selected { background: #d39e00; color: white; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        th, td { padding: 0.75rem; text-align: center; border-bottom: 1px solid #dee2e6; font-size: 0.95rem; }
+        th { background: #0d6efd; color: white; }
+        tr:last-child td { border-bottom: none; }
+    </style>
+<link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+</head>
+<body>
+
+    <!-- ÉCRAN DE CONFIGURATION -->
+    <div class="container" id="setup-screen">
+        <h1>Compteur Contrée</h1>
+        
+        <div class="input-group">
+            <label for="target-score">Objectif de points (Victoire)</label>
+            <select id="target-score" onchange="checkCustomTarget()">
+                <option value="1000" selected>1000 points</option>
+                <option value="1500">1500 points</option>
+                <option value="2000">2000 points</option>
+                <option value="custom">Personnalisé...</option>
+            </select>
+        </div>
+        <div class="input-group" id="custom-target-group" style="display: none;">
+            <label for="custom-target-val">Entrer l'objectif personnalisé</label>
+            <input type="number" id="custom-target-val" value="1200" min="100">
+        </div>
+
+        <h2>1. Sélectionner les 4 joueurs</h2>
+        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">Cochez exactement 4 joueurs :</div>
+        <div class="checkbox-grid" id="players-grid">
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Olivier">Olivier</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Christelle">Christelle</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Julia">Julia</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Coline">Coline</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Romain">Romain</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Mamou">Mamou</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Zouzou">Zouzou</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Aurélia">Aurélia</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="PO">PO</div>
+        </div>
+
+        <!-- Invité -->
+        <div class="input-group" style="margin-top: 1rem;">
+            <label>Ajouter un invité</label>
+            <div class="guest-row">
+                <input type="text" id="guest-input" placeholder="Nom de l'invité...">
+                <button class="btn-small" onclick="addGuest()">Ajouter</button>
+            </div>
+            <div id="guests-tags-container"></div>
+        </div>
+
+        <h2>2. Composition des Équipes</h2>
+        <div class="input-group">
+            <label for="team1-p1">Équipe 1 - Joueur 1</label>
+            <select id="team1-p1" onchange="updateDropdowns()"></select>
+        </div>
+        <div class="input-group">
+            <label for="team1-p2">Équipe 1 - Joueur 2</label>
+            <select id="team1-p2" onchange="updateDropdowns()"></select>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #ced4da; margin-top: 1rem;">
+            <label style="color: #495057; margin-bottom: 0;">Équipe 2 (attribuée automatiquement) :</label>
+            <div id="team2-automatic-display" style="font-weight: bold; font-size: 1.1rem; color: #0d6efd; margin-top: 0.4rem;">En attente de l'équipe 1...</div>
+        </div>
+
+        <button class="btn" onclick="startGame()">LANCER LA PARTIE</button>
+    </div>
+
+    <!-- ÉCRAN DE JEU / SAISIE DES DONNES -->
+    <div id="game-screen">
+        <div class="scoreboard">
+            <div class="team-box" id="t1-box">
+                <div class="team-name">Équipe 1</div>
+                <div class="team-score" id="t1-score">0</div>
+                <div class="team-players" id="t1-players-list"></div>
+            </div>
+            <div style="display:flex; align-items:center; font-weight:bold; color:#ccc; font-size:1.5rem;">VS</div>
+            <div class="team-box" id="t2-box">
+                <div class="team-name">Équipe 2</div>
+                <div class="team-score" id="t2-score">0</div>
+                <div class="team-players" id="t2-players-list"></div>
+            </div>
+        </div>
+
+        <div class="card-panel">
+            <h2>Nouvelle Donne - Enchères</h2>
+            <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.8rem;">
+                Le cadre vert indique l'équipe qui a la main pour annoncer ou surenchérir.
+            </div>
+
+            <!-- Interface gauche / droite avec boutons cliquables pour chaque type -->
+            <div class="auction-layout">
+                <!-- COLONNE GAUCHE (Équipe 1) -->
+                <div class="auction-col" id="col-team-1">
+                    <h3 id="col1-title">Équipe 1 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t1">Son Tour</span></h3>
+                    
+                    <div class="section-title">Couleur (dém. 80)</div>
+                    <div class="bids-grid" id="grid-t1-couleur"></div>
+
+                    <div class="section-title">Sans-Atout [SA] (dém. 60)</div>
+                    <div class="bids-grid" id="grid-t1-sa"></div>
+
+                    <div class="section-title">Tout-Atout [TA] (dém. 130)</div>
+                    <div class="bids-grid" id="grid-t1-ta"></div>
+                </div>
+
+                <!-- COLONNE DROITE (Équipe 2) -->
+                <div class="auction-col" id="col-team-2">
+                    <h3 id="col2-title">Équipe 2 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t2">Son Tour</span></h3>
+                    
+                    <div class="section-title">Couleur (dém. 80)</div>
+                    <div class="bids-grid" id="grid-t2-couleur"></div>
+
+                    <div class="section-title">Sans-Atout [SA] (dém. 60)</div>
+                    <div class="bids-grid" id="grid-t2-sa"></div>
+
+                    <div class="section-title">Tout-Atout [TA] (dém. 130)</div>
+                    <div class="bids-grid" id="grid-t2-ta"></div>
+                </div>
+            </div>
+
+            <!-- BOUTONS CONTRÉ / SURCONTRÉ -->
+            <div class="contre-bar" id="contre-bar">
+                <button class="btn-contre" id="btn-contre" onclick="toggleMultiplier(2)">⚡ CONTRÉ ! (x2)</button>
+                <button class="btn-surcontre" id="btn-surcontre" onclick="toggleMultiplier(4)" disabled>🔥 SURCONTRÉ ! (x4)</button>
+            </div>
+
+            <button class="btn-warning" onclick="resetAuction()">Réinitialiser les enchères</button>
+
+            <div style="background: #e7f1ff; padding: 0.8rem; border-radius: 6px; margin: 1rem 0; text-align: center; font-weight: bold; color: #0d6efd;" id="current-contract-summary">
+                Contrat retenu : Aucun (L'équipe 1 commence à annoncer)
+            </div>
+
+            <!-- SAISIE DES POINTS PAR BOUTONS -->
+            <div id="points-section" style="display: none; margin-top: 1.5rem; border-top: 2px solid #dee2e6; padding-top: 1rem;">
+                <label>Points réels faits par l'équipe preneuse : <span id="selected-points-display" style="color: #198754; font-weight: bold;">--</span></label>
+                <div class="points-grid" id="points-buttons-container"></div>
+            </div>
+
+            <!-- SECTION BELOTES -->
+            <div id="belote-section" style="display: none; margin-top: 1rem; background: #f8f9fa; padding: 0.8rem; border-radius: 6px; border: 1px solid #ced4da;">
+                <label style="margin-bottom: 0.3rem;">Belotes (uniquement si contrat réussi) :</label>
+                <div class="checkbox-grid" id="belote-buttons-container"></div>
+            </div>
+
+            <button class="btn" onclick="submitRound()">VALIDER LA DONNE</button>
+        </div>
+
+        <h2>Historique des donnes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Contrat</th>
+                    <th>Preneur</th>
+                    <th>Éq. 1 (Pts)</th>
+                    <th>Éq. 2 (Pts)</th>
+                </tr>
+            </thead>
+            <tbody id="history-body">
+                <tr><td colspan="5" style="color:#666;">Aucune donne enregistrée</td></tr>
+            </tbody>
+        </table>
+
+        <button class="btn btn-secondary" onclick="resetToSetup()">Modifier les joueurs / Paramètres</button>
+    </div>
+
+    <script>
+        let selectedPlayers = [];
+        let customGuests = [];
+        let gameData = {
+            target: 1000,
+            team1Name: "",
+            team2Name: "",
+            team1Players: [],
+            team2Players: [],
+            score1: 0,
+            score2: 0,
+            rounds: []
+        };
+
+        let currentBid = {
+            team: null,
+            type: null,
+            val: 0,
+            label: "",
+            multiplier: 1 // 1 = normal, 2 = contré, 4 = surcontré
+        };
+
+        let selectedTakerPoints = null;
+        let selectedBelotesCount = 0;
+
+        function checkCustomTarget() {
+            let val = document.getElementById('target-score').value;
+            let group = document.getElementById('custom-target-group');
+            group.style.display = (val === 'custom') ? 'block' : 'none';
+        }
+
+        function getActivePlayerPool() {
+            return [...selectedPlayers, ...customGuests];
+        }
+
+        function togglePlayer(element) {
+            let name = element.getAttribute('data-name');
+            if (element.classList.contains('selected')) {
+                element.classList.remove('selected');
+                selectedPlayers = selectedPlayers.filter(p => p !== name);
+            } else {
+                if (selectedPlayers.length >= 4) {
+                    alert("Sélectionnez exactement 4 joueurs au total (ou ajoutez des invités).");
+                    return;
+                }
+                element.classList.add('selected');
+                selectedPlayers.push(name);
+            }
+            updateDropdowns();
+        }
+
+        function addGuest() {
+            let input = document.getElementById('guest-input');
+            let name = input.value.trim();
+            if (!name) return;
+            if (getActivePlayerPool().includes(name)) {
+                alert("Ce nom existe déjà !");
+                return;
+            }
+            if (selectedPlayers.length >= 4) {
+                alert("Il y a déjà 4 joueurs sélectionnés. Décochez-en un pour ajouter un invité.");
+                return;
+            }
+            customGuests.push(name);
+            input.value = '';
+            renderGuests();
+            updateDropdowns();
+        }
+
+        function removeGuest(name) {
+            customGuests = customGuests.filter(g => g !== name);
+            renderGuests();
+            updateDropdowns();
+        }
+
+        function renderGuests() {
+            let container = document.getElementById('guests-tags-container');
+            container.innerHTML = '';
+            customGuests.forEach(g => {
+                let tag = document.createElement('div');
+                tag.className = 'guest-tag';
+                tag.innerHTML = `${g} <button class="btn-danger" onclick="removeGuest('${g}')">×</button>`;
+                container.appendChild(tag);
+            });
+        }
+
+        function updateDropdowns() {
+            let pool = getActivePlayerPool();
+            let ids = ['team1-p1', 'team1-p2'];
+            let currentSelections = ids.map(id => document.getElementById(id).value);
+
+            ids.forEach((targetId, index) => {
+                let sel = document.getElementById(targetId);
+                let previousVal = currentSelections[index];
+                sel.innerHTML = '<option value="">-- Choisir --</option>';
+                let takenByOthers = currentSelections.filter((val, i) => i !== index && val !== "");
+
+                pool.forEach(p => {
+                    if (!takenByOthers.includes(p)) {
+                        let opt = document.createElement('option');
+                        opt.value = p;
+                        opt.innerText = p;
+                        sel.appendChild(opt);
+                    }
+                });
+
+                if (pool.includes(previousVal) && !takenByOthers.includes(previousVal)) {
+                    sel.value = previousVal;
+                } else {
+                    sel.value = "";
+                }
+            });
+
+            let t1p1 = document.getElementById('team1-p1').value;
+            let t1p2 = document.getElementById('team1-p2').value;
+            let assigned = [t1p1, t1p2].filter(Boolean);
+            let remaining = pool.filter(p => !assigned.includes(p));
+
+            let displayBox = document.getElementById('team2-automatic-display');
+            if (assigned.length === 2 && remaining.length === 2) {
+                displayBox.innerText = `${remaining[0]} & ${remaining[1]}`;
+                displayBox.style.color = "#198754";
+            } else {
+                displayBox.innerText = "Sélectionnez les deux joueurs de l'équipe 1...";
+                displayBox.style.color = "#6c757d";
+            }
+        }
+
+        function startGame() {
+            let targetSelect = document.getElementById('target-score').value;
+            let target = (targetSelect === 'custom') ? (parseInt(document.getElementById('custom-target-val').value) || 1000) : parseInt(targetSelect);
+
+            let t1p1 = document.getElementById('team1-p1').value;
+            let t1p2 = document.getElementById('team1-p2').value;
+            let pool = getActivePlayerPool();
+            let assigned = [t1p1, t1p2];
+            let remaining = pool.filter(p => !assigned.includes(p));
+
+            if (!t1p1 || !t1p2 || remaining.length < 2) {
+                alert("Veuillez bien configurer les 4 joueurs de la partie.");
+                return;
+            }
+
+            gameData = {
+                target: target,
+                team1Name: `${t1p1} & ${t1p2}`,
+                team2Name: `${remaining[0]} & ${remaining[1]}`,
+                team1Players: [t1p1, t1p2],
+                team2Players: [remaining[0], remaining[1]],
+                score1: 0,
+                score2: 0,
+                rounds: []
+            };
+
+            document.getElementById('t1-players-list').innerText = gameData.team1Name;
+            document.getElementById('t2-players-list').innerText = gameData.team2Name;
+            document.getElementById('col1-title').innerHTML = `Équipe 1 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t1">Son Tour</span>`;
+            document.getElementById('col2-title').innerHTML = `Équipe 2 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t2">Son Tour</span>`;
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+
+            resetAuction();
+            updateScoreboard();
+        }
+
+        function getNormalizedValue(type, val) {
+            if (val === 250) return 250;
+            if (type === 'sa') return val + 20;
+            if (type === 'ta') return val - 50;
+            return val;
+        }
+
+        function resetAuction() {
+            currentBid = { team: null, type: null, val: 0, label: "", multiplier: 1 };
+            selectedTakerPoints = null;
+            selectedBelotesCount = 0;
+            document.getElementById('points-section').style.display = 'none';
+            document.getElementById('belote-section').style.display = 'none';
+            document.getElementById('contre-bar').style.display = 'none';
+            updateMultiplierButtons();
+            renderAllGrids();
+            updateContractSummary();
+        }
+
+        function makeBid(team, type, val, label) {
+            currentBid = { team: team, type: type, val: val, label: label, multiplier: 1 };
+            selectedTakerPoints = null;
+            selectedBelotesCount = 0;
+            
+            document.getElementById('contre-bar').style.display = 'flex';
+            updateMultiplierButtons();
+            renderAllGrids();
+            updateContractSummary();
+            renderPointsButtons();
+            renderBelotesUI();
+            
+            document.getElementById('points-section').style.display = 'block';
+            document.getElementById('belote-section').style.display = (type === 'sa') ? 'none' : 'block';
+        }
+
+        // --- GESTION CONTRÉ (x2) ET SURCONTRÉ (x4) ---
+        function toggleMultiplier(mult) {
+            if (!currentBid.team) return;
+            
+            if (mult === 2) {
+                // Basculer x2 : si déjà x2 ou x4, on repasse à 1
+                currentBid.multiplier = (currentBid.multiplier >= 2) ? 1 : 2;
+            } else if (mult === 4) {
+                // Basculer x4 : uniquement possible si déjà contré (x2)
+                if (currentBid.multiplier === 2) {
+                    currentBid.multiplier = 4;
+                } else if (currentBid.multiplier === 4) {
+                    currentBid.multiplier = 2;
+                }
+            }
+            updateMultiplierButtons();
+            renderAllGrids();
+            updateContractSummary();
+        }
+
+        function updateMultiplierButtons() {
+            let btnContre = document.getElementById('btn-contre');
+            let btnSurcontre = document.getElementById('btn-surcontre');
+
+            if (currentBid.multiplier >= 2) {
+                btnContre.classList.add('active');
+                btnSurcontre.disabled = false;
+            } else {
+                btnContre.classList.remove('active');
+                btnSurcontre.disabled = true;
+            }
+
+            if (currentBid.multiplier === 4) {
+                btnSurcontre.classList.add('active');
+            } else {
+                btnSurcontre.classList.remove('active');
+            }
+        }
+
+        function renderAllGrids() {
+            ['1', '2'].forEach(teamStr => {
+                let teamNum = parseInt(teamStr);
+                let colEl = document.getElementById(`col-team-${teamStr}`);
+                let badgeEl = document.getElementById(`badge-t${teamStr}`);
+
+                let isMyTurn = false;
+                if (!currentBid.team) {
+                    isMyTurn = (teamNum === 1);
+                } else if (currentBid.multiplier === 1) {
+                    isMyTurn = (teamNum !== currentBid.team);
+                }
+
+                if (isMyTurn) {
+                    colEl.classList.add('turn-active');
+                    badgeEl.style.display = 'inline-block';
+                } else {
+                    colEl.classList.remove('turn-active');
+                    badgeEl.style.display = 'none';
+                }
+
+                renderTypeGrid(teamNum, 'couleur', 80, 160, 10);
+                renderTypeGrid(teamNum, 'sa', 60, 120, 10);
+                renderTypeGrid(teamNum, 'ta', 130, 260, 10);
+            });
+        }
+
+        function renderTypeGrid(teamNum, type, minVal, maxVal, step) {
+            let gridId = `grid-t${teamNum}-${type}`;
+            let container = document.getElementById(gridId);
+            container.innerHTML = '';
+
+            let steps = [];
+            for (let i = minVal; i <= maxVal; i += step) {
+                steps.push({ val: i, label: i.toString() });
+            }
+            steps.push({ val: 250, label: "Capot" });
+
+            let currentNormalized = currentBid.team ? getNormalizedValue(currentBid.type, currentBid.val) : 0;
+
+            steps.forEach(step => {
+                let btn = document.createElement('button');
+                btn.className = 'bid-btn';
+                btn.innerText = step.label;
+
+                let isActive = (currentBid.team === teamNum && currentBid.type === type && currentBid.val === step.val);
+                if (isActive) btn.classList.add('active');
+
+                let stepNormalized = getNormalizedValue(type, step.val);
+                let isDisabled = false;
+
+                // Si contré ou surcontré, les enchères sont figées (sauf réinitialisation)
+                if (currentBid.multiplier > 1) {
+                    isDisabled = true;
+                } else if (currentBid.team !== null) {
+                    isDisabled = (stepNormalized <= currentNormalized);
+                }
+
+                btn.disabled = isDisabled;
+                btn.onclick = () => makeBid(teamNum, type, step.val, step.label);
+                container.appendChild(btn);
+            });
+        }
+
+        function renderPointsButtons() {
+            let container = document.getElementById('points-buttons-container');
+            container.innerHTML = '';
+
+            let maxTable = 160;
+            if (currentBid.type === 'sa') maxTable = 120;
+            if (currentBid.type === 'ta') maxTable = 260;
+
+            let step = 10;
+            for (let pts = 0; pts <= maxTable; pts += step) {
+                let btn = document.createElement('button');
+                btn.className = 'point-btn';
+                btn.innerText = pts.toString();
+                if (selectedTakerPoints === pts) btn.classList.add('selected');
+                
+                btn.onclick = () => {
+                    selectedTakerPoints = pts;
+                    document.getElementById('selected-points-display').innerText = pts + " pts";
+                    renderPointsButtons();
+                    checkIfContractSucceeded();
+                };
+                container.appendChild(btn);
+            }
+
+            let capotBtn = document.createElement('button');
+            capotBtn.className = 'point-btn capot-btn';
+            let capotVal = maxTable + 250;
+            capotBtn.innerText = "⚡ CAPOT (Tous les plis)";
+            if (selectedTakerPoints === capotVal) capotBtn.classList.add('selected');
+
+            capotBtn.onclick = () => {
+                selectedTakerPoints = capotVal;
+                document.getElementById('selected-points-display').innerText = "Capot (Tous les plis)";
+                renderPointsButtons();
+                checkIfContractSucceeded();
+            };
+            container.appendChild(capotBtn);
+        }
+
+        function renderBelotesUI() {
+            let container = document.getElementById('belote-buttons-container');
+            container.innerHTML = '';
+
+            let maxBelotes = (currentBid.type === 'ta') ? 4 : 1;
+
+            for (let i = 0; i <= maxBelotes; i++) {
+                let btn = document.createElement('div');
+                btn.className = 'check-btn';
+                if (selectedBelotesCount === i) btn.classList.add('selected');
+                btn.innerText = (i === 0) ? "Aucune belote" : `${i} belote${i > 1 ? 's' : ''} (${i * 20} pts)`;
+                
+                btn.onclick = () => {
+                    selectedBelotesCount = i;
+                    renderBelotesUI();
+                };
+                container.appendChild(btn);
+            }
+        }
+
+        function checkIfContractSucceeded() {
+            if (selectedTakerPoints === null) return;
+            let maxTable = (currentBid.type === 'sa') ? 120 : ((currentBid.type === 'ta') ? 260 : 160);
+            let isCapotDone = (selectedTakerPoints > maxTable);
+            let success = isCapotDone || ((currentBid.val === 250) ? (selectedTakerPoints >= maxTable) : (selectedTakerPoints >= currentBid.val));
+            
+            let beloteSection = document.getElementById('belote-section');
+            if (currentBid.type !== 'sa') {
+                beloteSection.style.display = success ? 'block' : 'none';
+                if (!success) selectedBelotesCount = 0;
+            }
+        }
+
+        function updateContractSummary() {
+            let summary = document.getElementById('current-contract-summary');
+            if (!currentBid.team) {
+                summary.innerText = "Contrat retenu : Aucun (L'équipe 1 commence à annoncer)";
+                summary.style.color = "#0d6efd";
+                summary.style.background = "#e7f1ff";
+            } else {
+                let teamName = (currentBid.team === 1) ? gameData.team1Name : gameData.team2Name;
+                let typeNames = { 'couleur': 'Couleur', 'sa': 'Sans-Atout [SA]', 'ta': 'Tout-Atout [TA]' };
+                let multText = "";
+                if (currentBid.multiplier === 2) multText = " — CONTRÉ (x2)";
+                if (currentBid.multiplier === 4) multText = " — SURCONTRÉ (x4)";
+
+                summary.innerText = `Contrat retenu : ${currentBid.label} en ${typeNames[currentBid.type]} par ${teamName}${multText}`;
+                if (currentBid.multiplier === 4) {
+                    summary.style.color = "#6f42c1";
+                    summary.style.background = "#e2d9f3";
+                } else if (currentBid.multiplier === 2) {
+                    summary.style.color = "#dc3545";
+                    summary.style.background = "#f8d7da";
+                } else {
+                    summary.style.color = "#198754";
+                    summary.style.background = "#d1e7dd";
+                }
+            }
+        }
+
+        function submitRound() {
+            if (!currentBid.team) {
+                alert("Veuillez sélectionner une enchère valide avant de valider la donne !");
+                return;
+            }
+            if (selectedTakerPoints === null) {
+                alert("Veuillez cliquer sur les points faits par l'équipe preneuse !");
+                return;
+            }
+
+            let maxTable = 160;
+            if (currentBid.type === 'sa') maxTable = 120;
+            if (currentBid.type === 'ta') maxTable = 260;
+
+            let isCapotDone = (selectedTakerPoints > maxTable);
+            let success = isCapotDone || ((currentBid.val === 250) ? (selectedTakerPoints >= maxTable) : (selectedTakerPoints >= currentBid.val));
+
+            let points1 = 0;
+            let points2 = 0;
+            let belotePoints = (success) ? (selectedBelotesCount * 20) : 0;
+
+            if (currentBid.team === 1) {
+                if (success) {
+                    let baseContractScore = (currentBid.val === 250) ? 250 : currentBid.val;
+                    points1 = (baseContractScore * currentBid.multiplier) + belotePoints;
+                    points2 = 0;
+                } else {
+                    points1 = 0;
+                    points2 = maxTable * currentBid.multiplier;
+                }
+            } else {
+                if (success) {
+                    let baseContractScore = (currentBid.val === 250) ? 250 : currentBid.val;
+                    points1 = 0;
+                    points2 = (baseContractScore * currentBid.multiplier) + belotePoints;
+                } else {
+                    points1 = maxTable * currentBid.multiplier;
+                    points2 = 0;
+                }
+            }
+
+            gameData.score1 += points1;
+            gameData.score2 += points2;
+
+            let typeNames = { 'couleur': 'Coul', 'sa': 'SA', 'ta': 'TA' };
+            let multTag = currentBid.multiplier > 1 ? ` x${currentBid.multiplier}` : '';
+            let beloteStr = (belotePoints > 0) ? ` +${belotePoints}b` : '';
+            gameData.rounds.push({
+                contract: `${currentBid.label} (${typeNames[currentBid.type]}${multTag}${beloteStr})`,
+                taker: (currentBid.team === 1) ? gameData.team1Name : gameData.team2Name,
+                s1: points1,
+                s2: points2
+            });
+
+            resetAuction();
+            updateScoreboard();
+            renderHistory();
+            checkVictory();
+        }
+
+        function updateScoreboard() {
+            document.getElementById('t1-score').innerText = gameData.score1;
+            document.getElementById('t2-score').innerText = gameData.score2;
+        }
+
+        function renderHistory() {
+            let tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            if (gameData.rounds.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:#666;">Aucune donne enregistrée</td></tr>';
+                return;
+            }
+
+            gameData.rounds.forEach((r, index) => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><b>${r.contract}</b></td>
+                    <td>${r.taker}</td>
+                    <td style="color: #198754; font-weight: bold;">+${r.s1}</td>
+                    <td style="color: #0d6efd; font-weight: bold;">+${r.s2}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function checkVictory() {
+            if (gameData.score1 >= gameData.target || gameData.score2 >= gameData.target) {
+                if (gameData.score1 === gameData.score2) {
+                    alert(`Égalité parfaite à ${gameData.score1} points ! On continue !`);
+                } else {
+                    let winner = (gameData.score1 > gameData.score2) ? gameData.team1Name : gameData.team2Name;
+                    setTimeout(() => {
+                        alert(`🏆 Victoire de l'équipe ${winner} qui atteint l'objectif de ${gameData.target} points !`);
+                    }, 100);
+                }
+            }
+        }
+
+        function resetToSetup() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
