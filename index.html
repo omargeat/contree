@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compteur Contrée</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Contrée">
     <style>
         body {
             margin: 0;
@@ -28,7 +33,7 @@
         }
         h1 { text-align: center; color: #0d6efd; margin-top: 0; }
         h2 { font-size: 1.2rem; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 0.3rem; margin-top: 1.5rem; }
-        
+
         .input-group { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.4rem; font-weight: bold; font-size: 0.95rem; }
         input, select {
@@ -40,7 +45,7 @@
             border-radius: 6px;
             background-color: white;
         }
-        
+
         .btn {
             background: #0d6efd;
             color: white;
@@ -55,8 +60,11 @@
             margin-top: 1.5rem;
         }
         .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn-secondary { background: #6c757d; margin-top: 0.5rem; }
+        .btn-success { background: #198754; }
         .btn-warning { background: #fd7e14; color: white; margin-top: 0.5rem; font-size: 0.9rem; padding: 0.5rem; width: 100%; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;}
+        .btn-undo { background: white; color: #dc3545; border: 2px solid #dc3545; margin-top: 0.5rem; font-size: 0.95rem; padding: 0.6rem; }
 
         .checkbox-grid {
             display: flex;
@@ -102,6 +110,16 @@
             font-size: 0.9rem;
             gap: 0.5rem;
         }
+        /* Grille des joueurs : 5 par ligne sur grand écran, 2 par ligne sur téléphone */
+        #players-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+        }
+        @media (max-width: 600px) {
+            #players-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .player-count { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+        .player-count.ok { color: #198754; font-weight: bold; }
 
         #game-screen { display: none; width: 100%; max-width: 750px; }
         .scoreboard {
@@ -111,13 +129,27 @@
             padding: 1rem;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             text-align: center;
         }
         .team-box { flex: 1; padding: 0.5rem; }
         .team-name { font-weight: bold; font-size: 1.1rem; color: #0d6efd; margin-bottom: 0.3rem; }
         .team-score { font-size: 2rem; font-weight: 900; }
         .team-players { font-size: 0.9rem; color: #555; margin-top: 0.3rem; font-weight: 500; }
+        .dealer-tag { display: inline-block; margin-top: 0.3rem; font-size: 0.75rem; background: #ffc107; color: #000; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: bold; visibility: hidden; }
+        .dealer-tag.on { visibility: visible; }
+
+        .victory-banner {
+            display: none;
+            background: #198754;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
 
         .card-panel {
             background: white;
@@ -146,7 +178,8 @@
             box-shadow: 0 0 10px rgba(25, 135, 84, 0.2);
         }
         .auction-col h3 { font-size: 1.1rem; margin-top: 0; color: #495057; text-align: center; display: flex; justify-content: space-between; align-items: center;}
-        
+        .turn-badge { font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none; }
+
         .section-title {
             font-size: 0.85rem;
             font-weight: bold;
@@ -176,86 +209,105 @@
         .bid-btn:hover:not(:disabled) { background: #0d6efd; color: white; }
         .bid-btn.active { background: #0d6efd; color: white; border-color: #0a58ca; }
         .bid-btn:disabled { background: #e2e3e5; color: #adb5bd; border-color: #e2e3e5; cursor: not-allowed; opacity: 0.4; }
+        .bid-btn.active:disabled { background: #0d6efd; color: white; opacity: 1; }
 
-        /* Boutons Contré / Surcontré */
         .contre-bar {
             display: none;
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
-        .btn-contre {
+        .btn-contre, .btn-surcontre {
             flex: 1;
             padding: 0.75rem;
             font-weight: bold;
             font-size: 1rem;
             border-radius: 6px;
-            border: 2px solid #dc3545;
             background: white;
-            color: #dc3545;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .btn-contre.active {
-            background: #dc3545;
-            color: white;
-        }
-        .btn-surcontre {
-            flex: 1;
-            padding: 0.75rem;
-            font-weight: bold;
-            font-size: 1rem;
-            border-radius: 6px;
-            border: 2px solid #6f42c1;
-            background: white;
-            color: #6f42c1;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-surcontre.active {
-            background: #6f42c1;
-            color: white;
-        }
-        .btn-surcontre:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
+        .btn-contre { border: 2px solid #dc3545; color: #dc3545; }
+        .btn-contre.active { background: #dc3545; color: white; }
+        .btn-surcontre { border: 2px solid #6f42c1; color: #6f42c1; }
+        .btn-surcontre.active { background: #6f42c1; color: white; }
+        .btn-surcontre:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .points-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-top: 0.5rem;
+        /* Pavé numérique */
+        .points-display {
+            font-size: 2rem;
+            font-weight: 900;
+            text-align: center;
+            background: #f8f9fa;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            min-height: 2.6rem;
+            color: #198754;
         }
-        .point-btn {
+        .points-display.empty { color: #adb5bd; font-weight: 600; font-size: 1.2rem; line-height: 2.6rem; }
+        .points-hint { text-align: center; font-size: 0.85rem; color: #6c757d; min-height: 1.2rem; }
+        .points-hint.error { color: #dc3545; font-weight: bold; }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+            max-width: 340px;
+            margin: 0.5rem auto 0;
+        }
+        .key-btn {
             background: #e9ecef;
             border: 1px solid #ced4da;
-            padding: 0.5rem 0.8rem;
-            border-radius: 6px;
+            border-radius: 8px;
+            font-size: 1.5rem;
             font-weight: bold;
+            padding: 0.7rem 0;
             cursor: pointer;
-            font-size: 1rem;
-            flex: 1 1 calc(20% - 0.4rem);
-            text-align: center;
+            user-select: none;
         }
-        .point-btn:hover { background: #198754; color: white; }
-        .point-btn.selected { background: #198754; color: white; border-color: #146c43; }
-        .point-btn.capot-btn { flex: 1 1 100%; background: #ffc107; color: #000; border-color: #ffca2c; }
-        .point-btn.capot-btn.selected { background: #d39e00; color: white; }
+        .key-btn:active { background: #0d6efd; color: white; }
+        .key-btn.key-clear { color: #dc3545; font-size: 1.1rem; }
+        .key-btn.key-back { font-size: 1.3rem; }
+        .capot-btn {
+            display: block;
+            width: 100%;
+            max-width: 340px;
+            margin: 0.5rem auto 0;
+            background: #ffc107;
+            color: #000;
+            border: 1px solid #ffca2c;
+            border-radius: 8px;
+            padding: 0.7rem;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        .capot-btn.selected { background: #d39e00; color: white; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         th, td { padding: 0.75rem; text-align: center; border-bottom: 1px solid #dee2e6; font-size: 0.95rem; }
         th { background: #0d6efd; color: white; }
         tr:last-child td { border-bottom: none; }
+
+        @media (max-width: 500px) {
+            body { padding: 0.5rem; }
+            .container { padding: 1.2rem; }
+            .card-panel { padding: 0.8rem; }
+            .auction-layout { gap: 0.4rem; }
+            .auction-col { padding: 0.4rem; }
+            .bids-grid { grid-template-columns: repeat(3, 1fr); }
+            th, td { padding: 0.5rem 0.3rem; font-size: 0.85rem; }
+        }
     </style>
-<link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d6efd">
 </head>
 <body>
 
     <!-- ÉCRAN DE CONFIGURATION -->
     <div class="container" id="setup-screen">
         <h1>Compteur Contrée</h1>
-        
+
+        <button class="btn btn-success" id="resume-btn" style="display:none; margin-top:0; margin-bottom:1rem;" onclick="showGameScreen()">↩ REPRENDRE LA PARTIE EN COURS</button>
+
         <div class="input-group">
             <label for="target-score">Objectif de points (Victoire)</label>
             <select id="target-score" onchange="checkCustomTarget()">
@@ -267,11 +319,11 @@
         </div>
         <div class="input-group" id="custom-target-group" style="display: none;">
             <label for="custom-target-val">Entrer l'objectif personnalisé</label>
-            <input type="number" id="custom-target-val" value="1200" min="100">
+            <input type="number" id="custom-target-val" value="1200" min="100" inputmode="numeric">
         </div>
 
         <h2>1. Sélectionner les 4 joueurs</h2>
-        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">Cochez exactement 4 joueurs :</div>
+        <div class="player-count" id="player-count">Cochez exactement 4 joueurs (invités compris) : 0 / 4</div>
         <div class="checkbox-grid" id="players-grid">
             <div class="check-btn" onclick="togglePlayer(this)" data-name="Olivier">Olivier</div>
             <div class="check-btn" onclick="togglePlayer(this)" data-name="Christelle">Christelle</div>
@@ -282,13 +334,13 @@
             <div class="check-btn" onclick="togglePlayer(this)" data-name="Zouzou">Zouzou</div>
             <div class="check-btn" onclick="togglePlayer(this)" data-name="Aurélia">Aurélia</div>
             <div class="check-btn" onclick="togglePlayer(this)" data-name="PO">PO</div>
+            <div class="check-btn" onclick="togglePlayer(this)" data-name="Alex">Alex</div>
         </div>
 
-        <!-- Invité -->
         <div class="input-group" style="margin-top: 1rem;">
             <label>Ajouter un invité</label>
             <div class="guest-row">
-                <input type="text" id="guest-input" placeholder="Nom de l'invité...">
+                <input type="text" id="guest-input" placeholder="Nom de l'invité..." onkeydown="if(event.key==='Enter') addGuest()">
                 <button class="btn-small" onclick="addGuest()">Ajouter</button>
             </div>
             <div id="guests-tags-container"></div>
@@ -306,66 +358,67 @@
 
         <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #ced4da; margin-top: 1rem;">
             <label style="color: #495057; margin-bottom: 0;">Équipe 2 (attribuée automatiquement) :</label>
-            <div id="team2-automatic-display" style="font-weight: bold; font-size: 1.1rem; color: #0d6efd; margin-top: 0.4rem;">En attente de l'équipe 1...</div>
+            <div id="team2-automatic-display" style="font-weight: bold; font-size: 1.1rem; color: #6c757d; margin-top: 0.4rem;">En attente de l'équipe 1...</div>
         </div>
 
-        <button class="btn" onclick="startGame()">LANCER LA PARTIE</button>
+        <h2>3. Qui donne en premier ?</h2>
+        <div class="checkbox-grid" id="first-dealer-grid">
+            <div class="check-btn selected" data-team="1" onclick="selectFirstDealer(1)">Équipe 1 donne</div>
+            <div class="check-btn" data-team="2" onclick="selectFirstDealer(2)">Équipe 2 donne</div>
+        </div>
+        <div style="font-size: 0.85rem; color: #666;">Le donneur alterne ensuite à chaque donne ; l'équipe qui ne donne pas annonce en premier.</div>
+
+        <button class="btn" onclick="startGame()">LANCER UNE NOUVELLE PARTIE</button>
     </div>
 
-    <!-- ÉCRAN DE JEU / SAISIE DES DONNES -->
+    <!-- ÉCRAN DE JEU -->
     <div id="game-screen">
+        <div class="victory-banner" id="victory-banner"></div>
+
         <div class="scoreboard">
-            <div class="team-box" id="t1-box">
+            <div class="team-box">
                 <div class="team-name">Équipe 1</div>
                 <div class="team-score" id="t1-score">0</div>
                 <div class="team-players" id="t1-players-list"></div>
+                <div class="dealer-tag" id="dealer-t1">🃏 Donne</div>
             </div>
             <div style="display:flex; align-items:center; font-weight:bold; color:#ccc; font-size:1.5rem;">VS</div>
-            <div class="team-box" id="t2-box">
+            <div class="team-box">
                 <div class="team-name">Équipe 2</div>
                 <div class="team-score" id="t2-score">0</div>
                 <div class="team-players" id="t2-players-list"></div>
+                <div class="dealer-tag" id="dealer-t2">🃏 Donne</div>
             </div>
         </div>
 
-        <div class="card-panel">
-            <h2>Nouvelle Donne - Enchères</h2>
+        <div class="card-panel" id="round-panel">
+            <h2 id="round-title">Nouvelle Donne - Enchères</h2>
             <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.8rem;">
                 Le cadre vert indique l'équipe qui a la main pour annoncer ou surenchérir.
             </div>
 
-            <!-- Interface gauche / droite avec boutons cliquables pour chaque type -->
             <div class="auction-layout">
-                <!-- COLONNE GAUCHE (Équipe 1) -->
                 <div class="auction-col" id="col-team-1">
-                    <h3 id="col1-title">Équipe 1 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t1">Son Tour</span></h3>
-                    
+                    <h3>Équipe 1 <span class="turn-badge" id="badge-t1">Son Tour</span></h3>
                     <div class="section-title">Couleur (dém. 80)</div>
                     <div class="bids-grid" id="grid-t1-couleur"></div>
-
                     <div class="section-title">Sans-Atout [SA] (dém. 60)</div>
                     <div class="bids-grid" id="grid-t1-sa"></div>
-
                     <div class="section-title">Tout-Atout [TA] (dém. 130)</div>
                     <div class="bids-grid" id="grid-t1-ta"></div>
                 </div>
 
-                <!-- COLONNE DROITE (Équipe 2) -->
                 <div class="auction-col" id="col-team-2">
-                    <h3 id="col2-title">Équipe 2 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t2">Son Tour</span></h3>
-                    
+                    <h3>Équipe 2 <span class="turn-badge" id="badge-t2">Son Tour</span></h3>
                     <div class="section-title">Couleur (dém. 80)</div>
                     <div class="bids-grid" id="grid-t2-couleur"></div>
-
                     <div class="section-title">Sans-Atout [SA] (dém. 60)</div>
                     <div class="bids-grid" id="grid-t2-sa"></div>
-
                     <div class="section-title">Tout-Atout [TA] (dém. 130)</div>
                     <div class="bids-grid" id="grid-t2-ta"></div>
                 </div>
             </div>
 
-            <!-- BOUTONS CONTRÉ / SURCONTRÉ -->
             <div class="contre-bar" id="contre-bar">
                 <button class="btn-contre" id="btn-contre" onclick="toggleMultiplier(2)">⚡ CONTRÉ ! (x2)</button>
                 <button class="btn-surcontre" id="btn-surcontre" onclick="toggleMultiplier(4)" disabled>🔥 SURCONTRÉ ! (x4)</button>
@@ -373,23 +426,23 @@
 
             <button class="btn-warning" onclick="resetAuction()">Réinitialiser les enchères</button>
 
-            <div style="background: #e7f1ff; padding: 0.8rem; border-radius: 6px; margin: 1rem 0; text-align: center; font-weight: bold; color: #0d6efd;" id="current-contract-summary">
-                Contrat retenu : Aucun (L'équipe 1 commence à annoncer)
-            </div>
+            <div style="background: #e7f1ff; padding: 0.8rem; border-radius: 6px; margin: 1rem 0; text-align: center; font-weight: bold; color: #0d6efd;" id="current-contract-summary"></div>
 
-            <!-- SAISIE DES POINTS PAR BOUTONS -->
+            <!-- SAISIE DES POINTS : PAVÉ NUMÉRIQUE -->
             <div id="points-section" style="display: none; margin-top: 1.5rem; border-top: 2px solid #dee2e6; padding-top: 1rem;">
-                <label>Points réels faits par l'équipe preneuse : <span id="selected-points-display" style="color: #198754; font-weight: bold;">--</span></label>
-                <div class="points-grid" id="points-buttons-container"></div>
+                <label style="text-align:center;">Points réels faits par l'équipe preneuse (sans les belotes)</label>
+                <div class="points-display empty" id="points-display">Tapez les points…</div>
+                <div class="points-hint" id="points-hint"></div>
+                <div class="keypad" id="keypad"></div>
+                <button class="capot-btn" id="capot-btn" onclick="selectCapot()">⚡ CAPOT (Tous les plis)</button>
             </div>
 
-            <!-- SECTION BELOTES -->
             <div id="belote-section" style="display: none; margin-top: 1rem; background: #f8f9fa; padding: 0.8rem; border-radius: 6px; border: 1px solid #ced4da;">
-                <label style="margin-bottom: 0.3rem;">Belotes (uniquement si contrat réussi) :</label>
+                <label style="margin-bottom: 0.3rem;">Belotes (uniquement si contrat réussi, hors capot annoncé) :</label>
                 <div class="checkbox-grid" id="belote-buttons-container"></div>
             </div>
 
-            <button class="btn" onclick="submitRound()">VALIDER LA DONNE</button>
+            <button class="btn" id="submit-btn" onclick="submitRound()">VALIDER LA DONNE</button>
         </div>
 
         <h2>Historique des donnes</h2>
@@ -399,51 +452,63 @@
                     <th>#</th>
                     <th>Contrat</th>
                     <th>Preneur</th>
-                    <th>Éq. 1 (Pts)</th>
-                    <th>Éq. 2 (Pts)</th>
+                    <th>Éq. 1</th>
+                    <th>Éq. 2</th>
                 </tr>
             </thead>
-            <tbody id="history-body">
-                <tr><td colspan="5" style="color:#666;">Aucune donne enregistrée</td></tr>
-            </tbody>
+            <tbody id="history-body"></tbody>
         </table>
 
-        <button class="btn btn-secondary" onclick="resetToSetup()">Modifier les joueurs / Paramètres</button>
+        <button class="btn btn-undo" id="undo-btn" onclick="undoLastRound()" style="display:none;">↶ Annuler la dernière donne</button>
+        <button class="btn btn-secondary" onclick="resetToSetup()">Modifier les joueurs / Nouvelle partie</button>
     </div>
 
     <script>
+        // ===== RÈGLES =====
+        // Total des points d'une donne par type (pour vérifier la saisie)
+        const MAX_POINTS = { couleur: 160, sa: 120, ta: 260 };
+        // Points marqués par la défense quand le preneur est dedans (hors capot)
+        const DEDANS_POINTS = { couleur: 160, sa: 120, ta: 260 };
+        const CAPOT_VALUE = 250;
+        const MAX_BELOTES = { couleur: 1, sa: 0, ta: 4 };
+        const STORAGE_KEY = 'contree-partie-v1';
+
         let selectedPlayers = [];
         let customGuests = [];
-        let gameData = {
-            target: 1000,
-            team1Name: "",
-            team2Name: "",
-            team1Players: [],
-            team2Players: [],
-            score1: 0,
-            score2: 0,
-            rounds: []
-        };
+        let firstDealerChoice = 1;
+        let gameData = null;
 
-        let currentBid = {
-            team: null,
-            type: null,
-            val: 0,
-            label: "",
-            multiplier: 1 // 1 = normal, 2 = contré, 4 = surcontré
-        };
-
-        let selectedTakerPoints = null;
+        let currentBid;
+        let pointsInput = "";      // chiffres tapés au pavé
+        let takerCapot = false;    // bouton "capot" coché
         let selectedBelotesCount = 0;
 
+        // ===== SAUVEGARDE =====
+        function saveGame() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(gameData)); } catch (e) {}
+        }
+        function loadGame() {
+            try {
+                let raw = localStorage.getItem(STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) { return null; }
+        }
+
+        // ===== ÉCRAN DE CONFIGURATION =====
         function checkCustomTarget() {
             let val = document.getElementById('target-score').value;
-            let group = document.getElementById('custom-target-group');
-            group.style.display = (val === 'custom') ? 'block' : 'none';
+            document.getElementById('custom-target-group').style.display = (val === 'custom') ? 'block' : 'none';
         }
 
         function getActivePlayerPool() {
             return [...selectedPlayers, ...customGuests];
+        }
+
+        function updatePlayerCount() {
+            let n = getActivePlayerPool().length;
+            let el = document.getElementById('player-count');
+            el.innerText = `Cochez exactement 4 joueurs (invités compris) : ${n} / 4`;
+            el.classList.toggle('ok', n === 4);
         }
 
         function togglePlayer(element) {
@@ -452,8 +517,8 @@
                 element.classList.remove('selected');
                 selectedPlayers = selectedPlayers.filter(p => p !== name);
             } else {
-                if (selectedPlayers.length >= 4) {
-                    alert("Sélectionnez exactement 4 joueurs au total (ou ajoutez des invités).");
+                if (getActivePlayerPool().length >= 4) {
+                    alert("Il y a déjà 4 joueurs (invités compris). Retirez-en un d'abord.");
                     return;
                 }
                 element.classList.add('selected');
@@ -466,12 +531,13 @@
             let input = document.getElementById('guest-input');
             let name = input.value.trim();
             if (!name) return;
-            if (getActivePlayerPool().includes(name)) {
+            let allNames = [...document.querySelectorAll('#players-grid .check-btn')].map(e => e.getAttribute('data-name'));
+            if (getActivePlayerPool().includes(name) || allNames.includes(name)) {
                 alert("Ce nom existe déjà !");
                 return;
             }
-            if (selectedPlayers.length >= 4) {
-                alert("Il y a déjà 4 joueurs sélectionnés. Décochez-en un pour ajouter un invité.");
+            if (getActivePlayerPool().length >= 4) {
+                alert("Il y a déjà 4 joueurs. Retirez-en un pour ajouter un invité.");
                 return;
             }
             customGuests.push(name);
@@ -492,12 +558,18 @@
             customGuests.forEach(g => {
                 let tag = document.createElement('div');
                 tag.className = 'guest-tag';
-                tag.innerHTML = `${g} <button class="btn-danger" onclick="removeGuest('${g}')">×</button>`;
+                tag.appendChild(document.createTextNode(g));
+                let btn = document.createElement('button');
+                btn.className = 'btn-danger';
+                btn.innerText = '×';
+                btn.onclick = () => removeGuest(g);
+                tag.appendChild(btn);
                 container.appendChild(tag);
             });
         }
 
         function updateDropdowns() {
+            updatePlayerCount();
             let pool = getActivePlayerPool();
             let ids = ['team1-p1', 'team1-p2'];
             let currentSelections = ids.map(id => document.getElementById(id).value);
@@ -507,7 +579,6 @@
                 let previousVal = currentSelections[index];
                 sel.innerHTML = '<option value="">-- Choisir --</option>';
                 let takenByOthers = currentSelections.filter((val, i) => i !== index && val !== "");
-
                 pool.forEach(p => {
                     if (!takenByOthers.includes(p)) {
                         let opt = document.createElement('option');
@@ -516,27 +587,29 @@
                         sel.appendChild(opt);
                     }
                 });
-
-                if (pool.includes(previousVal) && !takenByOthers.includes(previousVal)) {
-                    sel.value = previousVal;
-                } else {
-                    sel.value = "";
-                }
+                sel.value = (pool.includes(previousVal) && !takenByOthers.includes(previousVal)) ? previousVal : "";
             });
 
-            let t1p1 = document.getElementById('team1-p1').value;
-            let t1p2 = document.getElementById('team1-p2').value;
-            let assigned = [t1p1, t1p2].filter(Boolean);
+            let assigned = ids.map(id => document.getElementById(id).value).filter(Boolean);
             let remaining = pool.filter(p => !assigned.includes(p));
-
             let displayBox = document.getElementById('team2-automatic-display');
-            if (assigned.length === 2 && remaining.length === 2) {
+            if (pool.length !== 4) {
+                displayBox.innerText = `Il faut exactement 4 joueurs (actuellement ${pool.length}).`;
+                displayBox.style.color = "#6c757d";
+            } else if (assigned.length === 2) {
                 displayBox.innerText = `${remaining[0]} & ${remaining[1]}`;
                 displayBox.style.color = "#198754";
             } else {
                 displayBox.innerText = "Sélectionnez les deux joueurs de l'équipe 1...";
                 displayBox.style.color = "#6c757d";
             }
+        }
+
+        function selectFirstDealer(team) {
+            firstDealerChoice = team;
+            document.querySelectorAll('#first-dealer-grid .check-btn').forEach(el => {
+                el.classList.toggle('selected', parseInt(el.getAttribute('data-team')) === team);
+            });
         }
 
         function startGame() {
@@ -546,39 +619,59 @@
             let t1p1 = document.getElementById('team1-p1').value;
             let t1p2 = document.getElementById('team1-p2').value;
             let pool = getActivePlayerPool();
-            let assigned = [t1p1, t1p2];
-            let remaining = pool.filter(p => !assigned.includes(p));
+            let remaining = pool.filter(p => p !== t1p1 && p !== t1p2);
 
-            if (!t1p1 || !t1p2 || remaining.length < 2) {
+            if (pool.length !== 4 || !t1p1 || !t1p2 || remaining.length !== 2) {
                 alert("Veuillez bien configurer les 4 joueurs de la partie.");
                 return;
+            }
+            if (gameData && gameData.rounds.length > 0 && !gameData.finished) {
+                if (!confirm("Une partie est en cours. La remplacer par une nouvelle partie ? (les scores actuels seront perdus)")) return;
             }
 
             gameData = {
                 target: target,
                 team1Name: `${t1p1} & ${t1p2}`,
                 team2Name: `${remaining[0]} & ${remaining[1]}`,
-                team1Players: [t1p1, t1p2],
-                team2Players: [remaining[0], remaining[1]],
+                firstDealer: firstDealerChoice,
                 score1: 0,
                 score2: 0,
-                rounds: []
+                rounds: [],
+                finished: false
             };
-
-            document.getElementById('t1-players-list').innerText = gameData.team1Name;
-            document.getElementById('t2-players-list').innerText = gameData.team2Name;
-            document.getElementById('col1-title').innerHTML = `Équipe 1 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t1">Son Tour</span>`;
-            document.getElementById('col2-title').innerHTML = `Équipe 2 <span style="font-size:0.75rem; background:#198754; color:white; padding:0.2rem 0.5rem; border-radius:4px; display:none;" id="badge-t2">Son Tour</span>`;
-
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'block';
-
-            resetAuction();
-            updateScoreboard();
+            saveGame();
+            showGameScreen();
         }
 
+        function showGameScreen() {
+            document.getElementById('t1-players-list').innerText = gameData.team1Name;
+            document.getElementById('t2-players-list').innerText = gameData.team2Name;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            resetAuction();
+            refreshGameView();
+            window.scrollTo(0, 0);
+        }
+
+        function resetToSetup() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'block';
+            document.getElementById('resume-btn').style.display = (gameData && !gameData.finished) ? 'block' : 'none';
+            window.scrollTo(0, 0);
+        }
+
+        // ===== DONNEUR / TOUR =====
+        function currentDealer() {
+            let n = gameData.rounds.length;
+            return (n % 2 === 0) ? gameData.firstDealer : (3 - gameData.firstDealer);
+        }
+        function startingTeam() {
+            return 3 - currentDealer();
+        }
+
+        // ===== ENCHÈRES =====
         function getNormalizedValue(type, val) {
-            if (val === 250) return 250;
+            if (val === CAPOT_VALUE) return CAPOT_VALUE;
             if (type === 'sa') return val + 20;
             if (type === 'ta') return val - 50;
             return val;
@@ -586,8 +679,8 @@
 
         function resetAuction() {
             currentBid = { team: null, type: null, val: 0, label: "", multiplier: 1 };
-            selectedTakerPoints = null;
-            selectedBelotesCount = 0;
+            resetPointsEntry();
+            refreshPointsView();
             document.getElementById('points-section').style.display = 'none';
             document.getElementById('belote-section').style.display = 'none';
             document.getElementById('contre-bar').style.display = 'none';
@@ -596,36 +689,32 @@
             updateContractSummary();
         }
 
-        function makeBid(team, type, val, label) {
-            currentBid = { team: team, type: type, val: val, label: label, multiplier: 1 };
-            selectedTakerPoints = null;
+        function resetPointsEntry() {
+            pointsInput = "";
+            takerCapot = false;
             selectedBelotesCount = 0;
-            
+        }
+
+        function makeBid(team, type, val, label) {
+            if (gameData.finished) return;
+            currentBid = { team: team, type: type, val: val, label: label, multiplier: 1 };
+            resetPointsEntry();
             document.getElementById('contre-bar').style.display = 'flex';
+            document.getElementById('points-section').style.display = 'block';
             updateMultiplierButtons();
             renderAllGrids();
             updateContractSummary();
-            renderPointsButtons();
-            renderBelotesUI();
-            
-            document.getElementById('points-section').style.display = 'block';
-            document.getElementById('belote-section').style.display = (type === 'sa') ? 'none' : 'block';
+            renderKeypad();
+            refreshPointsView();
         }
 
-        // --- GESTION CONTRÉ (x2) ET SURCONTRÉ (x4) ---
         function toggleMultiplier(mult) {
             if (!currentBid.team) return;
-            
             if (mult === 2) {
-                // Basculer x2 : si déjà x2 ou x4, on repasse à 1
                 currentBid.multiplier = (currentBid.multiplier >= 2) ? 1 : 2;
             } else if (mult === 4) {
-                // Basculer x4 : uniquement possible si déjà contré (x2)
-                if (currentBid.multiplier === 2) {
-                    currentBid.multiplier = 4;
-                } else if (currentBid.multiplier === 4) {
-                    currentBid.multiplier = 2;
-                }
+                if (currentBid.multiplier === 2) currentBid.multiplier = 4;
+                else if (currentBid.multiplier === 4) currentBid.multiplier = 2;
             }
             updateMultiplierButtons();
             renderAllGrids();
@@ -635,42 +724,20 @@
         function updateMultiplierButtons() {
             let btnContre = document.getElementById('btn-contre');
             let btnSurcontre = document.getElementById('btn-surcontre');
-
-            if (currentBid.multiplier >= 2) {
-                btnContre.classList.add('active');
-                btnSurcontre.disabled = false;
-            } else {
-                btnContre.classList.remove('active');
-                btnSurcontre.disabled = true;
-            }
-
-            if (currentBid.multiplier === 4) {
-                btnSurcontre.classList.add('active');
-            } else {
-                btnSurcontre.classList.remove('active');
-            }
+            btnContre.classList.toggle('active', currentBid.multiplier >= 2);
+            btnSurcontre.disabled = currentBid.multiplier < 2;
+            btnSurcontre.classList.toggle('active', currentBid.multiplier === 4);
         }
 
         function renderAllGrids() {
-            ['1', '2'].forEach(teamStr => {
-                let teamNum = parseInt(teamStr);
-                let colEl = document.getElementById(`col-team-${teamStr}`);
-                let badgeEl = document.getElementById(`badge-t${teamStr}`);
-
+            [1, 2].forEach(teamNum => {
                 let isMyTurn = false;
-                if (!currentBid.team) {
-                    isMyTurn = (teamNum === 1);
-                } else if (currentBid.multiplier === 1) {
-                    isMyTurn = (teamNum !== currentBid.team);
+                if (gameData && !gameData.finished) {
+                    if (!currentBid.team) isMyTurn = (teamNum === startingTeam());
+                    else if (currentBid.multiplier === 1) isMyTurn = (teamNum !== currentBid.team);
                 }
-
-                if (isMyTurn) {
-                    colEl.classList.add('turn-active');
-                    badgeEl.style.display = 'inline-block';
-                } else {
-                    colEl.classList.remove('turn-active');
-                    badgeEl.style.display = 'none';
-                }
+                document.getElementById(`col-team-${teamNum}`).classList.toggle('turn-active', isMyTurn);
+                document.getElementById(`badge-t${teamNum}`).style.display = isMyTurn ? 'inline-block' : 'none';
 
                 renderTypeGrid(teamNum, 'couleur', 80, 160, 10);
                 renderTypeGrid(teamNum, 'sa', 60, 120, 10);
@@ -679,204 +746,267 @@
         }
 
         function renderTypeGrid(teamNum, type, minVal, maxVal, step) {
-            let gridId = `grid-t${teamNum}-${type}`;
-            let container = document.getElementById(gridId);
+            let container = document.getElementById(`grid-t${teamNum}-${type}`);
             container.innerHTML = '';
 
             let steps = [];
-            for (let i = minVal; i <= maxVal; i += step) {
-                steps.push({ val: i, label: i.toString() });
-            }
-            steps.push({ val: 250, label: "Capot" });
+            for (let i = minVal; i <= maxVal; i += step) steps.push({ val: i, label: i.toString() });
+            steps.push({ val: CAPOT_VALUE, label: "Capot" });
 
             let currentNormalized = currentBid.team ? getNormalizedValue(currentBid.type, currentBid.val) : 0;
 
-            steps.forEach(step => {
+            steps.forEach(s => {
                 let btn = document.createElement('button');
                 btn.className = 'bid-btn';
-                btn.innerText = step.label;
+                btn.innerText = s.label;
+                if (currentBid.team === teamNum && currentBid.type === type && currentBid.val === s.val) btn.classList.add('active');
 
-                let isActive = (currentBid.team === teamNum && currentBid.type === type && currentBid.val === step.val);
-                if (isActive) btn.classList.add('active');
-
-                let stepNormalized = getNormalizedValue(type, step.val);
-                let isDisabled = false;
-
-                // Si contré ou surcontré, les enchères sont figées (sauf réinitialisation)
-                if (currentBid.multiplier > 1) {
-                    isDisabled = true;
-                } else if (currentBid.team !== null) {
-                    isDisabled = (stepNormalized <= currentNormalized);
-                }
+                let isDisabled = gameData && gameData.finished;
+                if (currentBid.multiplier > 1) isDisabled = true;
+                else if (currentBid.team !== null) isDisabled = isDisabled || (getNormalizedValue(type, s.val) <= currentNormalized);
 
                 btn.disabled = isDisabled;
-                btn.onclick = () => makeBid(teamNum, type, step.val, step.label);
+                btn.onclick = () => makeBid(teamNum, type, s.val, s.label);
                 container.appendChild(btn);
             });
         }
 
-        function renderPointsButtons() {
-            let container = document.getElementById('points-buttons-container');
-            container.innerHTML = '';
+        function teamNameOf(team) {
+            return (team === 1) ? gameData.team1Name : gameData.team2Name;
+        }
 
-            let maxTable = 160;
-            if (currentBid.type === 'sa') maxTable = 120;
-            if (currentBid.type === 'ta') maxTable = 260;
-
-            let step = 10;
-            for (let pts = 0; pts <= maxTable; pts += step) {
-                let btn = document.createElement('button');
-                btn.className = 'point-btn';
-                btn.innerText = pts.toString();
-                if (selectedTakerPoints === pts) btn.classList.add('selected');
-                
-                btn.onclick = () => {
-                    selectedTakerPoints = pts;
-                    document.getElementById('selected-points-display').innerText = pts + " pts";
-                    renderPointsButtons();
-                    checkIfContractSucceeded();
-                };
-                container.appendChild(btn);
+        function updateContractSummary() {
+            let summary = document.getElementById('current-contract-summary');
+            if (!gameData) return;
+            if (!currentBid.team) {
+                let st = startingTeam();
+                summary.innerText = `Contrat retenu : Aucun (l'équipe ${st} — ${teamNameOf(st)} — annonce en premier)`;
+                summary.style.color = "#0d6efd";
+                summary.style.background = "#e7f1ff";
+                return;
             }
+            let typeNames = { couleur: 'Couleur', sa: 'Sans-Atout [SA]', ta: 'Tout-Atout [TA]' };
+            let multText = currentBid.multiplier === 2 ? " — CONTRÉ (x2)" : (currentBid.multiplier === 4 ? " — SURCONTRÉ (x4)" : "");
+            summary.innerText = `Contrat retenu : ${currentBid.label} en ${typeNames[currentBid.type]} par ${teamNameOf(currentBid.team)}${multText}`;
+            if (currentBid.multiplier === 4) { summary.style.color = "#6f42c1"; summary.style.background = "#e2d9f3"; }
+            else if (currentBid.multiplier === 2) { summary.style.color = "#dc3545"; summary.style.background = "#f8d7da"; }
+            else { summary.style.color = "#198754"; summary.style.background = "#d1e7dd"; }
+        }
 
-            let capotBtn = document.createElement('button');
-            capotBtn.className = 'point-btn capot-btn';
-            let capotVal = maxTable + 250;
-            capotBtn.innerText = "⚡ CAPOT (Tous les plis)";
-            if (selectedTakerPoints === capotVal) capotBtn.classList.add('selected');
+        // ===== PAVÉ NUMÉRIQUE =====
+        function renderKeypad() {
+            let pad = document.getElementById('keypad');
+            if (pad.childElementCount) return;
+            ['1','2','3','4','5','6','7','8','9','C','0','⌫'].forEach(k => {
+                let b = document.createElement('button');
+                b.className = 'key-btn';
+                if (k === 'C') { b.classList.add('key-clear'); b.innerText = 'Effacer'; }
+                else if (k === '⌫') { b.classList.add('key-back'); b.innerText = '⌫'; }
+                else b.innerText = k;
+                b.onclick = () => pressKey(k);
+                pad.appendChild(b);
+            });
+        }
 
-            capotBtn.onclick = () => {
-                selectedTakerPoints = capotVal;
-                document.getElementById('selected-points-display').innerText = "Capot (Tous les plis)";
-                renderPointsButtons();
-                checkIfContractSucceeded();
-            };
-            container.appendChild(capotBtn);
+        function pressKey(k) {
+            if (!currentBid.team) return;
+            takerCapot = false;
+            if (k === 'C') pointsInput = "";
+            else if (k === '⌫') pointsInput = pointsInput.slice(0, -1);
+            else {
+                let next = (pointsInput === "0") ? k : pointsInput + k;
+                if (parseInt(next) > MAX_POINTS[currentBid.type]) {
+                    showPointsHint(`Maximum ${MAX_POINTS[currentBid.type]} points en ${currentBid.type === 'couleur' ? 'Couleur' : currentBid.type.toUpperCase()}.`, true);
+                    return;
+                }
+                pointsInput = next;
+            }
+            refreshPointsView();
+        }
+
+        function selectCapot() {
+            if (!currentBid.team) return;
+            takerCapot = !takerCapot;
+            pointsInput = "";
+            refreshPointsView();
+        }
+
+        function getTakerPoints() {
+            if (takerCapot) return 'capot';
+            return pointsInput === "" ? null : parseInt(pointsInput);
+        }
+
+        function isContractSuccess() {
+            let pts = getTakerPoints();
+            if (pts === null) return null;
+            if (pts === 'capot') return true;
+            if (currentBid.val === CAPOT_VALUE) return false; // capot annoncé : il faut tous les plis
+            return pts >= currentBid.val;
+        }
+
+        function showPointsHint(text, isError) {
+            let hint = document.getElementById('points-hint');
+            hint.innerText = text;
+            hint.classList.toggle('error', !!isError);
+        }
+
+        function refreshPointsView() {
+            let display = document.getElementById('points-display');
+            let pts = getTakerPoints();
+            if (pts === null) {
+                display.innerText = "Tapez les points…";
+                display.classList.add('empty');
+            } else {
+                display.innerText = (pts === 'capot') ? "CAPOT" : pts + " pts";
+                display.classList.remove('empty');
+            }
+            document.getElementById('capot-btn').classList.toggle('selected', takerCapot);
+
+            let success = isContractSuccess();
+            if (success === null) showPointsHint("");
+            else if (success) showPointsHint("✅ Contrat réussi", false);
+            else showPointsHint("❌ Dedans (contrat chuté)", true);
+
+            // Belotes : seulement si contrat réussi, jamais sur un capot ANNONCÉ, et pas en SA
+            // (un capot réalisé sur un contrat normal garde ses belotes)
+            let beloteAllowed = success === true && currentBid.val !== CAPOT_VALUE && MAX_BELOTES[currentBid.type] > 0;
+            if (!beloteAllowed) selectedBelotesCount = 0;
+            document.getElementById('belote-section').style.display = beloteAllowed ? 'block' : 'none';
+            renderBelotesUI();
         }
 
         function renderBelotesUI() {
             let container = document.getElementById('belote-buttons-container');
             container.innerHTML = '';
-
-            let maxBelotes = (currentBid.type === 'ta') ? 4 : 1;
-
+            if (!currentBid.team) return;
+            let maxBelotes = MAX_BELOTES[currentBid.type];
             for (let i = 0; i <= maxBelotes; i++) {
                 let btn = document.createElement('div');
                 btn.className = 'check-btn';
                 if (selectedBelotesCount === i) btn.classList.add('selected');
                 btn.innerText = (i === 0) ? "Aucune belote" : `${i} belote${i > 1 ? 's' : ''} (${i * 20} pts)`;
-                
-                btn.onclick = () => {
-                    selectedBelotesCount = i;
-                    renderBelotesUI();
-                };
+                btn.onclick = () => { selectedBelotesCount = i; renderBelotesUI(); };
                 container.appendChild(btn);
             }
         }
 
-        function checkIfContractSucceeded() {
-            if (selectedTakerPoints === null) return;
-            let maxTable = (currentBid.type === 'sa') ? 120 : ((currentBid.type === 'ta') ? 260 : 160);
-            let isCapotDone = (selectedTakerPoints > maxTable);
-            let success = isCapotDone || ((currentBid.val === 250) ? (selectedTakerPoints >= maxTable) : (selectedTakerPoints >= currentBid.val));
-            
-            let beloteSection = document.getElementById('belote-section');
-            if (currentBid.type !== 'sa') {
-                beloteSection.style.display = success ? 'block' : 'none';
-                if (!success) selectedBelotesCount = 0;
-            }
-        }
-
-        function updateContractSummary() {
-            let summary = document.getElementById('current-contract-summary');
-            if (!currentBid.team) {
-                summary.innerText = "Contrat retenu : Aucun (L'équipe 1 commence à annoncer)";
-                summary.style.color = "#0d6efd";
-                summary.style.background = "#e7f1ff";
-            } else {
-                let teamName = (currentBid.team === 1) ? gameData.team1Name : gameData.team2Name;
-                let typeNames = { 'couleur': 'Couleur', 'sa': 'Sans-Atout [SA]', 'ta': 'Tout-Atout [TA]' };
-                let multText = "";
-                if (currentBid.multiplier === 2) multText = " — CONTRÉ (x2)";
-                if (currentBid.multiplier === 4) multText = " — SURCONTRÉ (x4)";
-
-                summary.innerText = `Contrat retenu : ${currentBid.label} en ${typeNames[currentBid.type]} par ${teamName}${multText}`;
-                if (currentBid.multiplier === 4) {
-                    summary.style.color = "#6f42c1";
-                    summary.style.background = "#e2d9f3";
-                } else if (currentBid.multiplier === 2) {
-                    summary.style.color = "#dc3545";
-                    summary.style.background = "#f8d7da";
-                } else {
-                    summary.style.color = "#198754";
-                    summary.style.background = "#d1e7dd";
-                }
-            }
-        }
-
+        // ===== VALIDATION D'UNE DONNE =====
         function submitRound() {
+            if (gameData.finished) return;
             if (!currentBid.team) {
                 alert("Veuillez sélectionner une enchère valide avant de valider la donne !");
                 return;
             }
-            if (selectedTakerPoints === null) {
-                alert("Veuillez cliquer sur les points faits par l'équipe preneuse !");
+            let success = isContractSuccess();
+            if (success === null) {
+                alert("Veuillez taper les points faits par l'équipe preneuse (ou cocher Capot) !");
                 return;
             }
 
-            let maxTable = 160;
-            if (currentBid.type === 'sa') maxTable = 120;
-            if (currentBid.type === 'ta') maxTable = 260;
-
-            let isCapotDone = (selectedTakerPoints > maxTable);
-            let success = isCapotDone || ((currentBid.val === 250) ? (selectedTakerPoints >= maxTable) : (selectedTakerPoints >= currentBid.val));
-
-            let points1 = 0;
-            let points2 = 0;
-            let belotePoints = (success) ? (selectedBelotesCount * 20) : 0;
-
-            if (currentBid.team === 1) {
-                if (success) {
-                    let baseContractScore = (currentBid.val === 250) ? 250 : currentBid.val;
-                    points1 = (baseContractScore * currentBid.multiplier) + belotePoints;
-                    points2 = 0;
-                } else {
-                    points1 = 0;
-                    points2 = maxTable * currentBid.multiplier;
-                }
+            let belotePoints = selectedBelotesCount * 20;
+            let takerScore = 0, defenseScore = 0;
+            if (success) {
+                takerScore = currentBid.val * currentBid.multiplier + belotePoints;
             } else {
-                if (success) {
-                    let baseContractScore = (currentBid.val === 250) ? 250 : currentBid.val;
-                    points1 = 0;
-                    points2 = (baseContractScore * currentBid.multiplier) + belotePoints;
-                } else {
-                    points1 = maxTable * currentBid.multiplier;
-                    points2 = 0;
-                }
+                // Dedans : la défense marque 160 (120 en SA, 260 en TA),
+                // ou 250 si c'était un capot annoncé — multiplié si contré/surcontré
+                let base = (currentBid.val === CAPOT_VALUE) ? CAPOT_VALUE : DEDANS_POINTS[currentBid.type];
+                defenseScore = base * currentBid.multiplier;
             }
+            let points1 = (currentBid.team === 1) ? takerScore : defenseScore;
+            let points2 = (currentBid.team === 2) ? takerScore : defenseScore;
 
-            gameData.score1 += points1;
-            gameData.score2 += points2;
-
-            let typeNames = { 'couleur': 'Coul', 'sa': 'SA', 'ta': 'TA' };
+            let typeNames = { couleur: 'Coul', sa: 'SA', ta: 'TA' };
             let multTag = currentBid.multiplier > 1 ? ` x${currentBid.multiplier}` : '';
             let beloteStr = (belotePoints > 0) ? ` +${belotePoints}b` : '';
+            let pts = getTakerPoints();
             gameData.rounds.push({
                 contract: `${currentBid.label} (${typeNames[currentBid.type]}${multTag}${beloteStr})`,
-                taker: (currentBid.team === 1) ? gameData.team1Name : gameData.team2Name,
+                made: (pts === 'capot') ? 'capot' : pts,
+                success: success,
+                taker: teamNameOf(currentBid.team),
                 s1: points1,
                 s2: points2
             });
+            gameData.score1 += points1;
+            gameData.score2 += points2;
 
+            let victoryJustReached = false;
+            if ((gameData.score1 >= gameData.target || gameData.score2 >= gameData.target) && gameData.score1 !== gameData.score2) {
+                gameData.finished = true;
+                victoryJustReached = true;
+            }
+            saveGame();
             resetAuction();
-            updateScoreboard();
-            renderHistory();
-            checkVictory();
+            refreshGameView();
+
+            if (victoryJustReached) {
+                setTimeout(() => alert(`🏆 Victoire de ${winnerName()} !`), 100);
+            } else if (gameData.score1 >= gameData.target && gameData.score1 === gameData.score2) {
+                alert(`Égalité parfaite à ${gameData.score1} points ! On continue !`);
+            }
         }
 
-        function updateScoreboard() {
+        // Annulation en deux appuis (sans fenêtre confirm(), parfois bloquée sur mobile)
+        let undoArmed = false;
+        let undoTimer = null;
+        function resetUndoButton() {
+            undoArmed = false;
+            clearTimeout(undoTimer);
+            let btn = document.getElementById('undo-btn');
+            btn.innerText = "↶ Annuler la dernière donne";
+            btn.style.background = "";
+            btn.style.color = "";
+        }
+        function undoLastRound() {
+            if (gameData.rounds.length === 0) return;
+            let last = gameData.rounds[gameData.rounds.length - 1];
+            let btn = document.getElementById('undo-btn');
+            if (!undoArmed) {
+                undoArmed = true;
+                btn.innerText = `Appuyer encore pour annuler la donne n°${gameData.rounds.length} (${last.contract})`;
+                btn.style.background = "#dc3545";
+                btn.style.color = "white";
+                undoTimer = setTimeout(resetUndoButton, 4000);
+                return;
+            }
+            resetUndoButton();
+            gameData.rounds.pop();
+            gameData.score1 -= last.s1;
+            gameData.score2 -= last.s2;
+            gameData.finished = false;
+            saveGame();
+            resetAuction();
+            refreshGameView();
+        }
+
+        function winnerName() {
+            return (gameData.score1 > gameData.score2) ? gameData.team1Name : gameData.team2Name;
+        }
+
+        // ===== AFFICHAGE GÉNÉRAL =====
+        function refreshGameView() {
             document.getElementById('t1-score').innerText = gameData.score1;
             document.getElementById('t2-score').innerText = gameData.score2;
+
+            let dealer = currentDealer();
+            document.getElementById('dealer-t1').classList.toggle('on', !gameData.finished && dealer === 1);
+            document.getElementById('dealer-t2').classList.toggle('on', !gameData.finished && dealer === 2);
+
+            let banner = document.getElementById('victory-banner');
+            if (gameData.finished) {
+                banner.style.display = 'block';
+                banner.innerText = `🏆 Victoire de ${winnerName()} (${Math.max(gameData.score1, gameData.score2)} à ${Math.min(gameData.score1, gameData.score2)}) !`;
+                document.getElementById('round-panel').style.display = 'none';
+            } else {
+                banner.style.display = 'none';
+                document.getElementById('round-panel').style.display = 'block';
+                document.getElementById('round-title').innerText = `Donne n°${gameData.rounds.length + 1} - Enchères`;
+            }
+            document.getElementById('undo-btn').style.display = gameData.rounds.length ? 'block' : 'none';
+            renderHistory();
+            renderAllGrids();
+            updateContractSummary();
         }
 
         function renderHistory() {
@@ -886,36 +1016,39 @@
                 tbody.innerHTML = '<tr><td colspan="5" style="color:#666;">Aucune donne enregistrée</td></tr>';
                 return;
             }
-
             gameData.rounds.forEach((r, index) => {
                 let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><b>${r.contract}</b></td>
-                    <td>${r.taker}</td>
-                    <td style="color: #198754; font-weight: bold;">+${r.s1}</td>
-                    <td style="color: #0d6efd; font-weight: bold;">+${r.s2}</td>
-                `;
+                let cells = [
+                    { text: index + 1 },
+                    { text: r.contract + (r.success === false ? ' ❌' : ''), bold: true },
+                    { text: r.taker },
+                    { text: '+' + r.s1, color: '#198754', bold: true },
+                    { text: '+' + r.s2, color: '#0d6efd', bold: true }
+                ];
+                cells.forEach(c => {
+                    let td = document.createElement('td');
+                    td.innerText = c.text;
+                    if (c.bold) td.style.fontWeight = 'bold';
+                    if (c.color) td.style.color = c.color;
+                    tr.appendChild(td);
+                });
                 tbody.appendChild(tr);
             });
         }
 
-        function checkVictory() {
-            if (gameData.score1 >= gameData.target || gameData.score2 >= gameData.target) {
-                if (gameData.score1 === gameData.score2) {
-                    alert(`Égalité parfaite à ${gameData.score1} points ! On continue !`);
-                } else {
-                    let winner = (gameData.score1 > gameData.score2) ? gameData.team1Name : gameData.team2Name;
-                    setTimeout(() => {
-                        alert(`🏆 Victoire de l'équipe ${winner} qui atteint l'objectif de ${gameData.target} points !`);
-                    }, 100);
-                }
-            }
+        // ===== DÉMARRAGE =====
+        updateDropdowns();
+        gameData = loadGame();
+        if (gameData && !gameData.finished) {
+            showGameScreen();
+        } else if (gameData) {
+            resetToSetup();
+            document.getElementById('resume-btn').style.display = 'none';
         }
+        if (!currentBid) currentBid = { team: null, type: null, val: 0, label: "", multiplier: 1 };
 
-        function resetToSetup() {
-            document.getElementById('game-screen').style.display = 'none';
-            document.getElementById('setup-screen').style.display = 'block';
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
         }
     </script>
 </body>
